@@ -1,0 +1,14 @@
+{
+  "version": 1,
+  "updated": "2026-09-11",
+  "platforms": {
+    "Linux": {
+      "e7302a426424da153f5331f1e6bb6768999c465f": {
+        "expiry_base_offset": "0x2470",
+        "g_cMainCharacter": "0x115c700",
+        "g_tInitServerTime": "0xf1c328"
+      }
+    },
+    "macOS": {}
+  }
+}
