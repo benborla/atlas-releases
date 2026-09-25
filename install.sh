@@ -7,6 +7,12 @@
 # Downloads the latest Linux build, verifies it, and installs it as ~/Desktop/Atlas.
 # Re-run it to update; the old copy is replaced.
 #
+# The build uploaded by hand (tools/deploy.sh --tag build) instead of CI's release:
+#
+#     ATLAS_CHANNEL=build sh -c "$(curl -fsSL https://raw.githubusercontent.com/benborla/atlas-releases/main/install.sh)"
+#
+# The same two sources as the Updates card's picker (updater.CHANNELS).
+#
 # This file is the copy of record. CI mirrors it to the public releases repo on
 # every merge, which is where the URL above serves it from — the source repo is
 # private and raw.githubusercontent would 404 for anyone without access.
@@ -22,9 +28,23 @@ REPO="${ATLAS_REPO:-benborla/atlas-releases}"
 ASSET="atlas-linux-x86_64"
 NAME="Atlas"
 
+# "release" is CI's rolling build; "build" is the pre-release tag a build is
+# uploaded to by hand. Keep the tag in step with updater.BUILD_TAG.
+CHANNEL="${ATLAS_CHANNEL:-release}"
+
+case "$CHANNEL" in
+    release) DEFAULT_URL="https://github.com/$REPO/releases/latest/download" ;;
+    build) DEFAULT_URL="https://github.com/$REPO/releases/download/build" ;;
+    *)
+        printf 'error ATLAS_CHANNEL must be "release" or "build", not "%s".\n' \
+            "$CHANNEL" >&2
+        exit 1
+        ;;
+esac
+
 # Overridable so the script can be exercised against a local file:// copy
 # without publishing a release first.
-BASE_URL="${ATLAS_BASE_URL:-https://github.com/$REPO/releases/latest/download}"
+BASE_URL="${ATLAS_BASE_URL:-$DEFAULT_URL}"
 
 RED=""
 GREEN=""
@@ -92,7 +112,7 @@ target="$desktop/$NAME"
 tmp=$(mktemp -d "${TMPDIR:-/tmp}/atlas.XXXXXX") || die "cannot make a temp dir"
 trap 'rm -rf "$tmp"' EXIT INT TERM
 
-say "Atlas"
+say "Atlas ${DIM}($CHANNEL)${RESET}"
 say "${DIM}from $BASE_URL${RESET}"
 say ""
 
