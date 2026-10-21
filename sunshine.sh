@@ -10,10 +10,13 @@ set -e
 #   - Tailscale (and joins your tailnet with an auth key)
 #
 # Usage:
-#   TS_AUTHKEY=tskey-auth-xxxx sh -c "$(curl -fsSL https://.../sunshine.sh)"
+#   sh -c "$(curl -fsSL https://raw.githubusercontent.com/benborla/atlas-releases/main/sunshine.sh)"
 #
 # Optional environment variables:
-#   TS_AUTHKEY      Tailscale auth key (prompted for if not set)
+#   TS_AUTHKEY      Tailscale auth key (tskey-auth-...) or OAuth client
+#                   secret (tskey-client-...); skips the password prompt
+#   TS_PASSWORD     Password that unlocks the built-in encrypted secret
+#   TS_TAGS         Tags for OAuth client secrets (default: tag:sunshine)
 #   DEVICE_NAME     Name shown in Moonlight and Tailscale (prompted for if not set)
 #   TS_HOSTNAME     Hostname to register in the tailnet (default: from DEVICE_NAME)
 #   SUNSHINE_USER   Sunshine web UI username (default: sunshine)
@@ -106,7 +109,7 @@ info "Device name: ${DEVICE_NAME}"
 
 info "Installing base packages..."
 $SUDO apt-get update -y
-$SUDO apt-get install -y curl ca-certificates jq
+$SUDO apt-get install -y curl ca-certificates jq openssl
 
 # ------------------------------------------------------------
 # Sunshine
@@ -308,9 +311,42 @@ fi
 
 $SUDO systemctl enable --now tailscaled
 
+# Built-in OAuth client secret, AES-256 encrypted (override with TS_AUTHKEY=...)
+# Re-encrypt with:
+#   printf '%s' 'tskey-client-...' | openssl enc -aes-256-cbc -pbkdf2 -iter 600000 -salt -a -A
+TS_SECRET_ENC="U2FsdGVkX18Alc5eh4gsPFdTEA/SgBQT7scSYYUHXuxFOUP1ApTylSJZ5psYr0llNkZ/mwIT8PPSR1OGQT6J/IpFtTa/nliyw0XVnw8e0WmfGvjxWElDSwo8gGLlipI7"
+
+decrypt_secret() {
+    printf '%s' "$TS_SECRET_ENC" | TS_PW="$1" \
+        openssl enc -d -aes-256-cbc -pbkdf2 -iter 600000 -a -A -pass env:TS_PW 2>/dev/null
+}
+
+if [ -z "${TS_AUTHKEY:-}" ] && [ -n "${TS_PASSWORD:-}" ]; then
+    TS_AUTHKEY="$(decrypt_secret "$TS_PASSWORD" || true)"
+    case "$TS_AUTHKEY" in tskey-*) ;; *) TS_AUTHKEY=""; warn "TS_PASSWORD is incorrect." ;; esac
+fi
+
+if [ -z "${TS_AUTHKEY:-}" ] && [ -t 0 ]; then
+    tries=0
+    while [ "$tries" -lt 3 ]; do
+        printf "Installer password (unlocks Tailscale login): "
+        stty -echo 2>/dev/null || true
+        read -r TS_PW_INPUT || true
+        stty echo 2>/dev/null || true
+        printf "\n"
+        TS_AUTHKEY="$(decrypt_secret "$TS_PW_INPUT" || true)"
+        case "$TS_AUTHKEY" in
+            tskey-*) info "Password accepted."; break ;;
+            *) TS_AUTHKEY=""; warn "Wrong password." ;;
+        esac
+        tries=$((tries + 1))
+    done
+    unset TS_PW_INPUT
+fi
+
 if [ -z "${TS_AUTHKEY:-}" ]; then
     if [ -t 0 ]; then
-        printf "Enter your Tailscale auth key (tskey-auth-...), or leave blank to log in via browser: "
+        printf "Enter your Tailscale auth key or OAuth client secret, or leave blank to log in via browser: "
         stty -echo 2>/dev/null || true
         read -r TS_AUTHKEY || true
         stty echo 2>/dev/null || true
@@ -322,6 +358,19 @@ TS_ARGS=""
 if [ -n "${TS_HOSTNAME:-}" ]; then
     TS_ARGS="--hostname=${TS_HOSTNAME}"
 fi
+
+# An OAuth client secret works as an auth key, but the device must be tagged
+case "${TS_AUTHKEY:-}" in
+    tskey-client-*)
+        TS_TAGS="${TS_TAGS:-tag:sunshine}"
+        case "$TS_AUTHKEY" in
+            *\?*) ;;
+            *) TS_AUTHKEY="${TS_AUTHKEY}?ephemeral=false&preauthorized=true" ;;
+        esac
+        TS_ARGS="${TS_ARGS} --advertise-tags=${TS_TAGS}"
+        info "Using OAuth client secret (tags: ${TS_TAGS})"
+        ;;
+esac
 
 if [ -n "${TS_AUTHKEY:-}" ]; then
     info "Joining tailnet with auth key..."
