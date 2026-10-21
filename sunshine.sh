@@ -14,9 +14,10 @@ set -e
 #
 # Optional environment variables:
 #   TS_AUTHKEY      Tailscale auth key (prompted for if not set)
-#   TS_HOSTNAME     Hostname to register in the tailnet
-#   SUNSHINE_USER   Sunshine web UI username
-#   SUNSHINE_PASS   Sunshine web UI password
+#   DEVICE_NAME     Name shown in Moonlight and Tailscale (prompted for if not set)
+#   TS_HOSTNAME     Hostname to register in the tailnet (default: from DEVICE_NAME)
+#   SUNSHINE_USER   Sunshine web UI username (default: sunshine)
+#   SUNSHINE_PASS   Sunshine web UI password (default: sunshine)
 #
 # Written in POSIX sh because `sh -c` runs it with dash on Ubuntu.
 # ============================================================
@@ -80,6 +81,25 @@ esac
 info "Detected ${PRETTY_NAME} (${ARCH})"
 
 # ------------------------------------------------------------
+# Device name
+# ------------------------------------------------------------
+
+DEFAULT_NAME="$(hostname)"
+if [ -z "${DEVICE_NAME:-}" ] && [ -t 0 ]; then
+    printf "Device name (shown in Moonlight) [%s]: " "$DEFAULT_NAME"
+    read -r DEVICE_NAME || true
+fi
+DEVICE_NAME="${DEVICE_NAME:-$DEFAULT_NAME}"
+
+# Tailscale hostnames must be DNS-safe: lowercase letters, digits, hyphens
+if [ -z "${TS_HOSTNAME:-}" ]; then
+    TS_HOSTNAME="$(printf '%s' "$DEVICE_NAME" | tr '[:upper:]' '[:lower:]' \
+        | sed 's/[^a-z0-9-]/-/g; s/--*/-/g; s/^-//; s/-$//' | cut -c1-63)"
+fi
+
+info "Device name: ${DEVICE_NAME}"
+
+# ------------------------------------------------------------
 # Base packages
 # ------------------------------------------------------------
 
@@ -128,7 +148,10 @@ echo "uinput" | $SUDO tee /etc/modules-load.d/uinput.conf >/dev/null
 $SUDO modprobe uinput || warn "Could not load uinput module."
 $SUDO usermod -aG input "$TARGET_USER" || true
 
-if [ -n "${SUNSHINE_USER:-}" ] && [ -n "${SUNSHINE_PASS:-}" ]; then
+SUNSHINE_USER="${SUNSHINE_USER:-sunshine}"
+SUNSHINE_PASS="${SUNSHINE_PASS:-sunshine}"
+
+if [ -n "$SUNSHINE_USER" ] && [ -n "$SUNSHINE_PASS" ]; then
     info "Setting Sunshine web UI credentials..."
     if [ -n "$SUDO" ]; then
         sunshine --creds "$SUNSHINE_USER" "$SUNSHINE_PASS" >/dev/null 2>&1 || warn "Could not set Sunshine credentials."
@@ -137,6 +160,18 @@ if [ -n "${SUNSHINE_USER:-}" ] && [ -n "${SUNSHINE_PASS:-}" ]; then
     fi
 fi
 
+# Name the host as it appears in Moonlight
+TARGET_HOME="$(getent passwd "$TARGET_USER" | cut -d: -f6)"
+SUNSHINE_CONF_DIR="${TARGET_HOME}/.config/sunshine"
+SUNSHINE_CONF="${SUNSHINE_CONF_DIR}/sunshine.conf"
+
+info "Setting Sunshine device name..."
+$SUDO mkdir -p "$SUNSHINE_CONF_DIR"
+$SUDO touch "$SUNSHINE_CONF"
+$SUDO sed -i '/^[[:space:]]*sunshine_name[[:space:]]*=/d' "$SUNSHINE_CONF"
+printf 'sunshine_name = %s\n' "$DEVICE_NAME" | $SUDO tee -a "$SUNSHINE_CONF" >/dev/null
+$SUDO chown -R "$TARGET_USER:" "$SUNSHINE_CONF_DIR"
+
 # CLI helper to approve Moonlight pairing requests without the browser
 info "Installing sunshine-pair helper..."
 $SUDO tee /usr/local/bin/sunshine-pair >/dev/null <<'EOF'
@@ -144,7 +179,7 @@ $SUDO tee /usr/local/bin/sunshine-pair >/dev/null <<'EOF'
 # Approve a pending Moonlight pairing request from the terminal.
 #
 # Usage: sunshine-pair [PIN] [CLIENT_NAME]
-# Credentials come from SUNSHINE_USER / SUNSHINE_PASS, or are prompted for.
+# Credentials come from SUNSHINE_USER / SUNSHINE_PASS (default: sunshine / sunshine).
 
 set -e
 
@@ -152,17 +187,8 @@ API="${SUNSHINE_API:-https://localhost:47990/api}"
 PIN="$1"
 NAME="$2"
 
-if [ -z "${SUNSHINE_USER:-}" ]; then
-    printf "Sunshine username: "
-    read -r SUNSHINE_USER
-fi
-if [ -z "${SUNSHINE_PASS:-}" ]; then
-    printf "Sunshine password: "
-    stty -echo 2>/dev/null || true
-    read -r SUNSHINE_PASS
-    stty echo 2>/dev/null || true
-    printf "\n"
-fi
+SUNSHINE_USER="${SUNSHINE_USER:-sunshine}"
+SUNSHINE_PASS="${SUNSHINE_PASS:-sunshine}"
 
 api() {
     curl -fsSk -u "$SUNSHINE_USER:$SUNSHINE_PASS" "$@"
@@ -275,8 +301,12 @@ TS_IP="$(tailscale ip -4 2>/dev/null | head -n1 || true)"
 echo
 info "Installation complete."
 echo
+echo "  Device name:       ${DEVICE_NAME}"
 echo "  Sunshine web UI:   https://localhost:47990"
+echo "  Username:          ${SUNSHINE_USER}"
+echo "  Password:          ${SUNSHINE_PASS}"
 if [ -n "$TS_IP" ]; then
+    echo "  Tailscale name:    ${TS_HOSTNAME}"
     echo "  Tailscale IP:      ${TS_IP}"
     echo "  Moonlight:         add host ${TS_IP}"
 fi
