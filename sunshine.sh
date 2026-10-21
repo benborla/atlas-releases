@@ -137,6 +137,69 @@ if [ -n "${SUNSHINE_USER:-}" ] && [ -n "${SUNSHINE_PASS:-}" ]; then
     fi
 fi
 
+# CLI helper to approve Moonlight pairing requests without the browser
+info "Installing sunshine-pair helper..."
+$SUDO tee /usr/local/bin/sunshine-pair >/dev/null <<'EOF'
+#!/bin/sh
+# Approve a pending Moonlight pairing request from the terminal.
+#
+# Usage: sunshine-pair [PIN] [CLIENT_NAME]
+# Credentials come from SUNSHINE_USER / SUNSHINE_PASS, or are prompted for.
+
+set -e
+
+API="${SUNSHINE_API:-https://localhost:47990/api}"
+PIN="$1"
+NAME="$2"
+
+if [ -z "${SUNSHINE_USER:-}" ]; then
+    printf "Sunshine username: "
+    read -r SUNSHINE_USER
+fi
+if [ -z "${SUNSHINE_PASS:-}" ]; then
+    printf "Sunshine password: "
+    stty -echo 2>/dev/null || true
+    read -r SUNSHINE_PASS
+    stty echo 2>/dev/null || true
+    printf "\n"
+fi
+
+api() {
+    curl -fsSk -u "$SUNSHINE_USER:$SUNSHINE_PASS" "$@"
+}
+
+PENDING="$(api "$API/pin")" || { echo "Could not reach Sunshine API (wrong credentials or not running?)" >&2; exit 1; }
+COUNT="$(printf '%s' "$PENDING" | jq '.pairings | length')"
+
+if [ "$COUNT" -eq 0 ]; then
+    echo "No pending pairing requests. Click the host in Moonlight first, then rerun." >&2
+    exit 1
+fi
+
+# Use the newest request; list all when there are several
+printf '%s' "$PENDING" | jq -r '.pairings[] | "  pending: \(.name) (\(.address))"'
+PAIRING_ID="$(printf '%s' "$PENDING" | jq -r '.pairings[-1].id')"
+[ -n "$NAME" ] || NAME="$(printf '%s' "$PENDING" | jq -r '.pairings[-1].name // "Moonlight"')"
+[ -n "$NAME" ] || NAME="Moonlight"
+
+if [ -z "$PIN" ]; then
+    printf "PIN shown in Moonlight: "
+    read -r PIN
+fi
+
+BODY="$(jq -nc --arg id "$PAIRING_ID" --arg pin "$PIN" --arg name "$NAME" \
+    '{pairing_id: $id, pin: $pin, name: $name}')"
+RESULT="$(api -X POST -H "Content-Type: application/json" -d "$BODY" "$API/pin")"
+
+if [ "$(printf '%s' "$RESULT" | jq -r '.status')" = "true" ]; then
+    echo "Paired: $NAME"
+else
+    echo "Pairing failed: $RESULT" >&2
+    exit 1
+fi
+EOF
+$SUDO chmod 755 /usr/local/bin/sunshine-pair
+
 info "Enabling Sunshine user service..."
 if [ -n "$SUDO" ]; then
     systemctl --user daemon-reload 2>/dev/null || true
@@ -198,5 +261,6 @@ if [ -n "$TS_IP" ]; then
     echo "  Tailscale IP:      ${TS_IP}"
     echo "  Moonlight:         add host ${TS_IP}"
 fi
+echo "  Pair a client:     sunshine-pair <PIN shown in Moonlight>"
 echo
 warn "Log out and back in (or reboot) so the 'input' group change takes effect."
