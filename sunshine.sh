@@ -195,7 +195,11 @@ api() {
 }
 
 PENDING="$(api "$API/pin")" || { echo "Could not reach Sunshine API (wrong credentials or not running?)" >&2; exit 1; }
-COUNT="$(printf '%s' "$PENDING" | jq '.pairings | length')"
+if ! COUNT="$(printf '%s' "$PENDING" | jq -e '.pairings | length' 2>/dev/null)"; then
+    echo "Sunshine API returned no data. Sunshine probably has no login set up yet," >&2
+    echo "or was started before it was set. Restart Sunshine and try again." >&2
+    exit 1
+fi
 
 if [ "$COUNT" -eq 0 ]; then
     echo "No pending pairing requests. Click the host in Moonlight first, then rerun." >&2
@@ -217,7 +221,7 @@ BODY="$(jq -nc --arg id "$PAIRING_ID" --arg pin "$PIN" --arg name "$NAME" \
     '{pairing_id: $id, pin: $pin, name: $name}')"
 RESULT="$(api -X POST -H "Content-Type: application/json" -d "$BODY" "$API/pin")"
 
-if [ "$(printf '%s' "$RESULT" | jq -r '.status')" = "true" ]; then
+if [ "$(printf '%s' "$RESULT" | jq -r '.status' 2>/dev/null)" = "true" ]; then
     echo "Paired: $NAME"
 else
     echo "Pairing failed: $RESULT" >&2
@@ -228,6 +232,23 @@ $SUDO chmod 755 /usr/local/bin/sunshine-pair
 
 info "Starting Sunshine in the background..."
 SUNSHINE_LOG="/tmp/sunshine-${TARGET_USER}.log"
+
+# Stop any running instance so it picks up the new credentials and name
+if [ -n "$SUDO" ]; then
+    systemctl --user stop sunshine 2>/dev/null || true
+fi
+if pgrep -u "$TARGET_USER" -x sunshine >/dev/null 2>&1; then
+    info "Stopping running Sunshine instance..."
+    $SUDO pkill -u "$TARGET_USER" -x sunshine || true
+    # Shutdown takes a few seconds; wait so the new instance can bind its ports
+    i=0
+    while pgrep -u "$TARGET_USER" -x sunshine >/dev/null 2>&1 && [ "$i" -lt 15 ]; do
+        sleep 1
+        i=$((i + 1))
+    done
+    $SUDO pkill -9 -u "$TARGET_USER" -x sunshine 2>/dev/null || true
+fi
+
 if [ -n "$SUDO" ]; then
     # Preferred: systemd user service (also autostarts on login)
     systemctl --user daemon-reload 2>/dev/null || true
@@ -236,8 +257,6 @@ fi
 
 if [ -n "$SUDO" ] && systemctl --user is-active --quiet sunshine 2>/dev/null; then
     info "Sunshine running as user service (logs: journalctl --user -u sunshine -f)"
-elif pgrep -u "$TARGET_USER" -x sunshine >/dev/null 2>&1; then
-    info "Sunshine is already running."
 else
     # Fallback: detach it from this shell so it survives the script exiting
     if [ -n "$SUDO" ]; then
