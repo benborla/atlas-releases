@@ -236,6 +236,19 @@ else
     echo "Pairing failed: $RESULT" >&2
     exit 1
 fi
+
+# Re-pairing the same device stores its certificate again, and Sunshine then
+# rejects it (401) because the cert matches more than one entry. Keep the newest.
+STATE="${SUNSHINE_STATE:-$HOME/.config/sunshine/sunshine_state.json}"
+sleep 1
+if [ -r "$STATE" ]; then
+    jq -r '.root.named_devices // [] | group_by(.cert)[] | .[:-1][] | .uuid' "$STATE" 2>/dev/null \
+        | while read -r OLD_UUID; do
+            api -X POST -H "Content-Type: application/json" \
+                -d "{\"uuid\":\"$OLD_UUID\"}" "$API/clients/unpair" >/dev/null \
+                && echo "Removed duplicate pairing: $OLD_UUID"
+        done
+fi
 EOF
 $SUDO chmod 755 /usr/local/bin/sunshine-pair
 
