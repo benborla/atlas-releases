@@ -200,13 +200,32 @@ fi
 EOF
 $SUDO chmod 755 /usr/local/bin/sunshine-pair
 
-info "Enabling Sunshine user service..."
+info "Starting Sunshine in the background..."
+SUNSHINE_LOG="/tmp/sunshine-${TARGET_USER}.log"
 if [ -n "$SUDO" ]; then
+    # Preferred: systemd user service (also autostarts on login)
     systemctl --user daemon-reload 2>/dev/null || true
-    systemctl --user enable --now sunshine 2>/dev/null \
-        || warn "Could not start the Sunshine user service now. It will need a logged-in desktop session; run: systemctl --user enable --now sunshine"
+    systemctl --user enable --now sunshine 2>/dev/null || true
+fi
+
+if [ -n "$SUDO" ] && systemctl --user is-active --quiet sunshine 2>/dev/null; then
+    info "Sunshine running as user service (logs: journalctl --user -u sunshine -f)"
+elif pgrep -u "$TARGET_USER" -x sunshine >/dev/null 2>&1; then
+    info "Sunshine is already running."
 else
-    warn "Running as root: log in as ${TARGET_USER} and run: systemctl --user enable --now sunshine"
+    # Fallback: detach it from this shell so it survives the script exiting
+    if [ -n "$SUDO" ]; then
+        setsid nohup sunshine >"$SUNSHINE_LOG" 2>&1 </dev/null &
+    else
+        sudo -u "$TARGET_USER" -H env DISPLAY="${DISPLAY:-:0}" \
+            setsid nohup sunshine >"$SUNSHINE_LOG" 2>&1 </dev/null &
+    fi
+    sleep 3
+    if pgrep -u "$TARGET_USER" -x sunshine >/dev/null 2>&1; then
+        info "Sunshine running detached (logs: ${SUNSHINE_LOG})"
+    else
+        warn "Sunshine did not stay running. Check ${SUNSHINE_LOG}; it needs a logged-in desktop session."
+    fi
 fi
 
 # ------------------------------------------------------------
