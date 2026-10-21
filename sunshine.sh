@@ -18,6 +18,7 @@ set -e
 #   TS_HOSTNAME     Hostname to register in the tailnet (default: from DEVICE_NAME)
 #   SUNSHINE_USER   Sunshine web UI username (default: sunshine)
 #   SUNSHINE_PASS   Sunshine web UI password (default: sunshine)
+#   SUNSHINE_MAX_BITRATE  Stream bitrate cap in Kbps, 0 = no cap (default: 5000)
 #
 # Written in POSIX sh because `sh -c` runs it with dash on Ubuntu.
 # ============================================================
@@ -165,11 +166,19 @@ TARGET_HOME="$(getent passwd "$TARGET_USER" | cut -d: -f6)"
 SUNSHINE_CONF_DIR="${TARGET_HOME}/.config/sunshine"
 SUNSHINE_CONF="${SUNSHINE_CONF_DIR}/sunshine.conf"
 
-info "Setting Sunshine device name..."
+SUNSHINE_MAX_BITRATE="${SUNSHINE_MAX_BITRATE:-5000}"
+
+# Replace (or add) a "key = value" line in sunshine.conf
+set_conf() {
+    $SUDO sed -i "/^[[:space:]]*$1[[:space:]]*=/d" "$SUNSHINE_CONF"
+    printf '%s = %s\n' "$1" "$2" | $SUDO tee -a "$SUNSHINE_CONF" >/dev/null
+}
+
+info "Configuring Sunshine (name: ${DEVICE_NAME}, bitrate cap: ${SUNSHINE_MAX_BITRATE} Kbps)..."
 $SUDO mkdir -p "$SUNSHINE_CONF_DIR"
 $SUDO touch "$SUNSHINE_CONF"
-$SUDO sed -i '/^[[:space:]]*sunshine_name[[:space:]]*=/d' "$SUNSHINE_CONF"
-printf 'sunshine_name = %s\n' "$DEVICE_NAME" | $SUDO tee -a "$SUNSHINE_CONF" >/dev/null
+set_conf sunshine_name "$DEVICE_NAME"
+set_conf max_bitrate "$SUNSHINE_MAX_BITRATE"
 $SUDO chown -R "$TARGET_USER:" "$SUNSHINE_CONF_DIR"
 
 # CLI helper to approve Moonlight pairing requests without the browser
@@ -330,6 +339,7 @@ echo "  Device name:       ${DEVICE_NAME}"
 echo "  Sunshine web UI:   https://localhost:47990"
 echo "  Username:          ${SUNSHINE_USER}"
 echo "  Password:          ${SUNSHINE_PASS}"
+echo "  Bitrate cap:       ${SUNSHINE_MAX_BITRATE} Kbps"
 if [ -n "$TS_IP" ]; then
     echo "  Tailscale name:    ${TS_HOSTNAME}"
     echo "  Tailscale IP:      ${TS_IP}"
