@@ -375,7 +375,16 @@ esac
 if [ -n "${TS_AUTHKEY:-}" ]; then
     info "Joining tailnet with auth key..."
     # shellcheck disable=SC2086
-    $SUDO tailscale up --authkey="$TS_AUTHKEY" $TS_ARGS
+    if ! $SUDO tailscale up --authkey="$TS_AUTHKEY" $TS_ARGS; then
+        case "$TS_AUTHKEY" in
+            tskey-client-*)
+                warn "Tailscale rejected the OAuth login. In the admin console:"
+                warn "  1. Access controls: add  \"tagOwners\": { \"${TS_TAGS}\": [\"autogroup:admin\"] }"
+                warn "  2. Settings > OAuth clients: allow Auth Keys (write) with ${TS_TAGS}"
+                ;;
+        esac
+        error "Could not join the tailnet. Fix the above and re-run the installer."
+    fi
 else
     warn "No auth key provided. Open the URL below to log in."
     # shellcheck disable=SC2086
