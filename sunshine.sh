@@ -311,6 +311,12 @@ else
     $SUDO tailscale up $TS_ARGS
 fi
 
+# `tailscale up` can skip the hostname on an already-logged-in machine
+if [ -n "${TS_HOSTNAME:-}" ]; then
+    info "Setting Tailscale device name to ${TS_HOSTNAME}..."
+    $SUDO tailscale set --hostname="$TS_HOSTNAME" || warn "Could not set Tailscale device name."
+fi
+
 TS_IP="$(tailscale ip -4 2>/dev/null | head -n1 || true)"
 
 # ------------------------------------------------------------
