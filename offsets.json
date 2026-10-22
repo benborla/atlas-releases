@@ -1,12 +1,177 @@
 {
   "version": 1,
-  "updated": "2026-09-11",
+  "updated": "2026-10-03",
   "platforms": {
     "Linux": {
+      "0f8221d090128cdb81fab18896d640bac82802bd": {
+        "expiry_base_offset": "0x2470",
+        "g_cMainCharacter": "0x11807a0",
+        "g_tInitServerTime": "0xf403a8",
+        "item_addresses": {
+          "g_pEquipInventory": "0x1180680",
+          "g_pInventoryGuard": "0x1180678",
+          "g_pParamTableMgr": "0x11806a0",
+          "g_dwNextRepairTick": "0x118f178",
+          "g_nRepairIntervalMin": "0xf21930",
+          "g_nRepairItemIndex": "0x118f180"
+        },
+        "character_addresses": {
+          "g_cMainCharacter": "0x11807a0",
+          "g_pCharStatus": "0xf40380",
+          "g_szCharName": "0x11806e0",
+          "g_stCharInfo": "0x119c020",
+          "g_pPCInfo": "0xf40480",
+          "g_nCurrentMap": "0xf3a4a4"
+        }
+      },
+      "eb50ee5ea39f0dd03390fb70e69c0cea902f324c": {
+        "expiry_base_offset": "0x2470",
+        "g_cMainCharacter": "0x11807a0",
+        "g_tInitServerTime": "0xf403a8",
+        "item_addresses": {
+          "g_pEquipInventory": "0x1180680",
+          "g_pInventoryGuard": "0x1180678",
+          "g_pParamTableMgr": "0x11806a0",
+          "g_dwNextRepairTick": "0x118f178",
+          "g_nRepairIntervalMin": "0xf21930",
+          "g_nRepairItemIndex": "0x118f180"
+        },
+        "character_addresses": {
+          "g_cMainCharacter": "0x11807a0",
+          "g_pCharStatus": "0xf40380",
+          "g_szCharName": "0x11806e0",
+          "g_stCharInfo": "0x119c020",
+          "g_pPCInfo": "0xf40480",
+          "g_nCurrentMap": "0xf3a4a4"
+        }
+      },
+      "70096a4f7b1cb11ade2bd93e5c8c54da562213da": {
+        "expiry_base_offset": "0x2470",
+        "g_cMainCharacter": "0x1180760",
+        "g_tInitServerTime": "0xf40368",
+        "item_addresses": {
+          "g_pEquipInventory": "0x1180640",
+          "g_pInventoryGuard": "0x1180638",
+          "g_pParamTableMgr": "0x1180660",
+          "g_dwNextRepairTick": "0x118f138",
+          "g_nRepairIntervalMin": "0xf218f0",
+          "g_nRepairItemIndex": "0x118f140"
+        },
+        "character_addresses": {
+          "g_cMainCharacter": "0x1180760",
+          "g_pCharStatus": "0xf40340",
+          "g_szCharName": "0x11806a0",
+          "g_stCharInfo": "0x119bfe0",
+          "g_pPCInfo": "0xf40440",
+          "g_nCurrentMap": "0xf3a464"
+        }
+      },
+      "bb3465cd33667e517f1fba7701cff1ae13daf4e4": {
+        "expiry_base_offset": "0x2470",
+        "g_cMainCharacter": "0x11647a0",
+        "g_tInitServerTime": "0xf243a8",
+        "item_addresses": {
+          "g_pEquipInventory": "0x1164680",
+          "g_pInventoryGuard": "0x1164678",
+          "g_pParamTableMgr": "0x11646a0",
+          "g_dwNextRepairTick": "0x1173150",
+          "g_nRepairIntervalMin": "0x1173158",
+          "g_nRepairItemIndex": "0x117315c"
+        },
+        "character_addresses": {
+          "g_cMainCharacter": "0x11647a0",
+          "g_pCharStatus": "0xf24380",
+          "g_szCharName": "0x11646e0",
+          "g_stCharInfo": "0x1180000",
+          "g_pPCInfo": "0xf24480",
+          "g_nCurrentMap": "0xf1e4a4"
+        }
+      },
+      "6b795ea22e3ed136728c01ef907ad0724e24a23b": {
+        "expiry_base_offset": "0x2470",
+        "g_cMainCharacter": "0x11647a0",
+        "g_tInitServerTime": "0xf243a8",
+        "item_addresses": {
+          "g_pEquipInventory": "0x1164680",
+          "g_pInventoryGuard": "0x1164678",
+          "g_pParamTableMgr": "0x11646a0",
+          "g_dwNextRepairTick": "0x1173150",
+          "g_nRepairIntervalMin": "0x1173158",
+          "g_nRepairItemIndex": "0x117315c"
+        },
+        "character_addresses": {
+          "g_cMainCharacter": "0x11647a0",
+          "g_pCharStatus": "0xf24380",
+          "g_szCharName": "0x11646e0",
+          "g_stCharInfo": "0x1180000",
+          "g_pPCInfo": "0xf24480",
+          "g_nCurrentMap": "0xf1e4a4"
+        }
+      },
       "e7302a426424da153f5331f1e6bb6768999c465f": {
         "expiry_base_offset": "0x2470",
         "g_cMainCharacter": "0x115c700",
-        "g_tInitServerTime": "0xf1c328"
+        "g_tInitServerTime": "0xf1c328",
+        "item_addresses": {
+          "g_pEquipInventory": "0x115c5e0",
+          "g_pInventoryGuard": "0x115c5d8",
+          "g_pParamTableMgr": "0x115c600",
+          "g_dwNextRepairTick": "0x116b048",
+          "g_nRepairIntervalMin": "0x116b04c",
+          "g_nRepairItemIndex": "0x116b050"
+        },
+        "character_addresses": {
+          "g_cMainCharacter": "0x115c700",
+          "g_pCharStatus": "0xf1c300",
+          "g_szCharName": "0x115c640",
+          "g_stCharInfo": "0x1176280",
+          "g_pPCInfo": "0xf1c3f0",
+          "g_nCurrentMap": "0xf16424",
+          "g_stPlayerRow": "0x1176854"
+        }
+      },
+      "f12e9ebf0c289577457e62760ad4943506b1d732": {
+        "expiry_base_offset": "0x2470",
+        "g_cMainCharacter": "0x1160720",
+        "g_tInitServerTime": "0xf20328",
+        "item_addresses": {
+          "g_pEquipInventory": "0x1160600",
+          "g_pInventoryGuard": "0x11605f8",
+          "g_pParamTableMgr": "0x1160620",
+          "g_dwNextRepairTick": "0x116f068",
+          "g_nRepairIntervalMin": "0x116f06c",
+          "g_nRepairItemIndex": "0x116f070"
+        },
+        "character_addresses": {
+          "g_cMainCharacter": "0x1160720",
+          "g_pCharStatus": "0xf20300",
+          "g_szCharName": "0x1160660",
+          "g_stCharInfo": "0x117be80",
+          "g_pPCInfo": "0xf203f8",
+          "g_nCurrentMap": "0xf1a424",
+          "g_stPlayerRow": "0x10643bc"
+        }
+      },
+      "f6d79b3de9144f281f991e4dce4849fe5f82ed3f": {
+        "expiry_base_offset": "0x2478",
+        "g_cMainCharacter": "0x11eaca0",
+        "g_tInitServerTime": "0xfaa8a8",
+        "item_addresses": {
+          "g_pEquipInventory": "0x11eab80",
+          "g_pInventoryGuard": "0x11eab78",
+          "g_pParamTableMgr": "0x11eaba0",
+          "g_dwNextRepairTick": "0x11f9798",
+          "g_nRepairIntervalMin": "0xf8be30",
+          "g_nRepairItemIndex": "0x11f97a0"
+        },
+        "character_addresses": {
+          "g_cMainCharacter": "0x11eaca0",
+          "g_pCharStatus": "0xfaa880",
+          "g_szCharName": "0x11eabe0",
+          "g_stCharInfo": "0x1206660",
+          "g_pPCInfo": "0xfaa980",
+          "g_nCurrentMap": "0xfa49a4"
+        }
       }
     },
     "macOS": {}
